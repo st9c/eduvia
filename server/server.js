@@ -1,4 +1,3 @@
-// File: server/server.js
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -25,9 +24,32 @@ if (!JWT_SECRET) {
 // Ensure uploads dir exists
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-// Basic middleware
+// Explicit CORS for GitHub Pages / production deployments
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map(s => s.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow same-origin or non-browser requests (e.g., curl) where origin is undefined
+    if (!origin) return callback(null, true);
+    // In non-production, if not configured, allow any origin for easier local dev
+    if (allowedOrigins.length === 0 && process.env.NODE_ENV !== "production") {
+      return callback(null, true);
+    }
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
+};
+
 app.use(helmet());
-app.use(cors({ origin: true, credentials: true }));
+// IMPORTANT: Use the configured CORS options instead of origin: true
+app.use(cors(corsOptions));
 app.use(express.json({ limit: "2mb" }));
 app.use(morgan("dev"));
 app.use("/uploads", express.static(path.resolve(UPLOAD_DIR)));
@@ -210,7 +232,6 @@ app.post("/api/submissions", authMiddleware, ensureStudent, upload.single("file"
   }
   if (!req.file) return res.status(400).json({ error: "Missing file" });
 
-  // Allow one submission per assignment per student (simple rule)
   const existing = db.submissions.find(s => s.assignmentId === assignmentId && s.studentId === req.user.id);
   if (existing) {
     fs.unlinkSync(req.file.path);
@@ -247,7 +268,8 @@ app.get("/api/submissions/by-assignment/:assignmentId", authMiddleware, ensurePr
         name: db.users.find(u => u.id === s.studentId).name,
         email: db.users.find(u => u.id === s.studentId).email
       } : null,
-      downloadUrl: `/uploads/${path.basename(s.filePath)}`
+      // IMPORTANT: Use absolute URL for downloads when serving from a different host
+      downloadUrl: `${process.env.PUBLIC_BASE_URL || ""}/uploads/${path.basename(s.filePath)}`
     }));
   return res.json(submissions);
 });
