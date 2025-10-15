@@ -588,6 +588,38 @@
         if (e.key === "Enter") document.getElementById("registerBtn").click();
       });
     })();
+
+    // File: client/index.html (fix init event listeners at the end)
+(function init() {
+  const token = localStorage.getItem("token");
+  if (token) {
+    setAuth(token);
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      state.user = { id: payload.id, email: "", name: "", role: payload.role };
+      state.role = payload.role;
+    } catch {}
+    if (state.role) renderRole();
+    else renderAuth();
+  } else {
+    renderAuth();
+  }
+
+  // Enter-to-submit shortcuts
+  const loginPwd = document.getElementById("loginPassword");
+  if (loginPwd) {
+    loginPwd.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") document.getElementById("loginBtn").click();
+    });
+  }
+  const regPwd = document.getElementById("regPassword");
+  if (regPwd) {
+    regPwd.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") document.getElementById("registerBtn").click();
+    });
+  }
+})();
+
   </script>
 </body>
 </html>
