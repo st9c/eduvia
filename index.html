@@ -184,13 +184,34 @@
   </main>
 
   <script>
-    const API_BASE = "https://st9c.github.io/eduvia/api";
+    const API_BASE = "https://api.yourdomain.com/api";
+
     const state = {
       token: null,
       user: null,
       role: null,
       profCourses: []
     };
+
+    function setAuth(token) {
+      state.token = token;
+      if (token) localStorage.setItem("token", token);
+      else localStorage.removeItem("token");
+    }
+
+    async function api(path, opts = {}) {
+      const headers = opts.headers || {};
+      if (state.token) headers["Authorization"] = "Bearer " + state.token;
+      if (!(opts.body instanceof FormData)) {
+        headers["Content-Type"] = headers["Content-Type"] || "application/json";
+      }
+      const res = await fetch(API_BASE + path, { ...opts, headers, mode: "cors" });
+      const text = await res.text();
+      let data = {};
+      try { data = text ? JSON.parse(text) : {}; } catch { data = {}; }
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      return data;
+    }
 
     function setAuth(token) {
       state.token = token;
