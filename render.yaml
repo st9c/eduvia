@@ -1,0 +1,18 @@
+# render.yaml
+# Docs: https://render.com/docs/deploy-next-application
+
+services:
+  - type: web
+    name: eduvia
+    env: node
+    buildCommand: pnpm install && pnpm build
+    startCommand: node server/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PORT
+        value: 10000
+    plan: free
+    autoDeploy: true
